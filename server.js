@@ -162,8 +162,8 @@ app.options('*', (req, res) => {
     (origin.includes('192.168.') || origin.includes('localhost') ||
      origin.includes('127.0.0.1') || origin.includes('172.'));
   
-  if (isAllowed) {
-    res.header('Access-Control-Allow-Origin', origin || '*');
+  if (isAllowed && origin) {
+    res.header('Access-Control-Allow-Origin', origin);
   }
   res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,HEAD');
   res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept,Range,If-Range');

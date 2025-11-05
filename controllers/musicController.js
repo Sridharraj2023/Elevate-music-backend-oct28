@@ -7,9 +7,17 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 dotenv.config();
+import sanitizeHtml from 'sanitize-html';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Plain-text sanitizer for freeform text fields
+function sanitizeText(input = '') {
+  const trimmed = typeof input === 'string' ? input.trim() : '';
+  if (!trimmed) return '';
+  return sanitizeHtml(trimmed, { allowedTags: [], allowedAttributes: {} });
+}
 
 // Security: Validate and sanitize filename
 const sanitizeFilename = (filename) => {
@@ -128,7 +136,15 @@ const getMusic = asyncHandler(async (req, res) => {
 // @route   POST /api/music/create
 // @access  Private/Admin
 const createMusic = asyncHandler(async (req, res) => {
-  const { title, artist, category, categoryType, duration, releaseDate } = req.body;
+  const {
+    title,
+    artist,
+    category,
+    categoryType,
+    duration,
+    releaseDate,
+    description: rawDescription,
+  } = req.body;
   const audioFile = req.files?.file?.[0];
   const thumbnailFile = req.files?.thumbnail?.[0];
 
@@ -150,6 +166,12 @@ const createMusic = asyncHandler(async (req, res) => {
   }
 
   try {
+    const description = sanitizeText(rawDescription);
+    if (description.length > 1000) {
+      return res
+        .status(400)
+        .json({ message: 'Description must be 1000 characters or fewer' });
+    }
     const musicData = {
       title,
       artist,
@@ -159,6 +181,7 @@ const createMusic = asyncHandler(async (req, res) => {
       duration: Number(duration),
       releaseDate: new Date(releaseDate),
       user: req.user._id,
+      description,
     };
 
     if (thumbnailFile) {
@@ -223,6 +246,17 @@ const updateMusic = asyncHandler(async (req, res) => {
     }
     music.duration = req.body.duration || music.duration;
     music.releaseDate = req.body.releaseDate || music.releaseDate;
+
+    // Description (optional) with sanitization and length guard
+    if (typeof req.body.description !== 'undefined') {
+      const description = sanitizeText(req.body.description);
+      if (description.length > 1000) {
+        return res
+          .status(400)
+          .json({ message: 'Description must be 1000 characters or fewer' });
+      }
+      music.description = description;
+    }
 
     if (audioFile) {
       if (music.fileUrl) {

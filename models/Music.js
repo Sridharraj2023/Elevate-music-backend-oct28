@@ -35,6 +35,12 @@ const musicSchema = mongoose.Schema(
     releaseDate: {
       type: Date,
     },
+    description: {
+      type: String,
+      trim: true,
+      maxlength: 1000,
+      default: '',
+    },
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   },
   {
